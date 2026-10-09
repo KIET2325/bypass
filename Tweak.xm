@@ -2,15 +2,10 @@
 #import <objc/runtime.h>
 #import <Foundation/Foundation.h>
 
-// Định nghĩa giao diện lớp con của iOS để tránh lỗi biên dịch
-@interface CLLocationSourceInformation : NSObject
-@property (readonly, isSimulatedBySoftware: BOOL) BOOL isSimulatedBySoftware;
-@end
-
 %hook CLLocation
 
-// 1. Vượt qua thuộc tính cốt lõi của iOS 15+ (Quan trọng nhất)
-// iOS 15 bổ sung sourceInformation để chỉ đích danh vị trí có bị phần mềm giả lập hay không.
+// 1. Vượt qua thuộc tính cốt lõi của iOS 15+
+// Sử dụng kiểu trả về 'id' thay vì gọi trực tiếp lớp con để tránh xung đột SDK
 - (id)sourceInformation {
     return nil; // Trả về nil để báo hiệu vị trí hoàn toàn từ phần cứng thật
 }
@@ -19,7 +14,7 @@
 - (CLLocationAccuracy)horizontalAccuracy {
     CLLocationAccuracy orig = %orig;
     if (orig <= 0) {
-        return 5.0; // Ép về mức sai số 5 mét
+        return 5.0; // Ép về mức sai số cố định 5 mét
     }
     return orig;
 }
@@ -27,7 +22,7 @@
 - (CLLocationAccuracy)verticalAccuracy {
     CLLocationAccuracy orig = %orig;
     if (orig <= 0) {
-        return 5.0; //
+        return 5.0;
     }
     return orig;
 }
@@ -36,36 +31,37 @@
 - (CLLocationDistance)altitude {
     CLLocationDistance orig = %orig;
     if (orig == 0.0) {
-        return 21.3; // Thay đổi số thập phân để trông tự nhiên hơn
+        return 21.35; // Giá trị độ cao giả lập thực tế
     }
     return orig;
 }
 
 // 4. Chuẩn hóa thời gian (Timestamp Validation)
 - (NSDate *)timestamp {
-    return [NSDate date]; // Trả về thời gian thực tại thời điểm gọi
+    return [NSDate date];
 }
 
 %end
 
-// 5. Chống quét môi trường / Ẩn ứng dụng nhân bản hoặc công cụ bẻ khóa
+// 5. Chống quét môi trường / Ẩn ứng dụng cấu hình lạ
 %hook NSFileManager
 
 - (BOOL)fileExistsAtPath:(NSString *)path {
-    // Nếu Timemark quét các đường dẫn chứa dylib, ứng dụng fake, hoặc jailbreak, báo không tồn tại
-    if ([path containsString:@"Library/MobileSubstrate"] || 
-        [path containsString:@"Sideloadly"] || 
-        [path containsString:@"FakeGPS"] ||
-        [path containsString:@"frida"]) {
-        return NO;
+    if (path) {
+        if ([path containsString:@"Library/MobileSubstrate"] || 
+            [path containsString:@"Sideloadly"] || 
+            [path containsString:@"FakeGPS"] ||
+            [path containsString:@"frida"]) {
+            return NO;
+        }
     }
     return %orig;
 }
 
 %end
 
-// 6. Khởi tạo hệ thống ẩn danh
-%ctl() {
+// 6. Sửa cấu trúc Khởi tạo (Constructor) chuẩn của Logos
+%ctor {
     %init(_ungrouped);
-    NSLog(@"[TimeMarkShield] Đã kích hoạt hệ thống Bypass GPS nâng cao!");
+    NSLog(@"[TimeMarkShield] Đã kích hoạt hệ thống định vị an toàn thành công!");
 }

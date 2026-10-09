@@ -50,5 +50,9 @@
 + (BOOL)locationServicesEnabled {
     return YES;
 }
+// Ép tệp dylib tự động khởi chạy khi tiêm vào file IPA độc lập
+static __attribute__((constructor)) void initialize_gps_shield() {
+    NSLog(@"[TimeMarkShield] Hệ thống GPS Shield đã được kích hoạt thành công!");
+}
 
 %end

@@ -22,12 +22,14 @@ jobs:
 
     - name: Setup Theos Environment
       run: |
-        bash -c "$(curl -fsSL https://githubusercontent.com)"
+        THEOS_INSTALL_URL=$(printf "https://githubusercontent.com" "theos" "theos")
+        bash -c "$(curl -fsSL $THEOS_INSTALL_URL)"
         echo "THEOS=/home/runner/theos" >> $GITHUB_ENV
 
     - name: Download iOS SDK
       run: |
-        git clone --quiet --depth=1 https://github.com /home/runner/theos/sdks
+        SDK_URL=$(printf "https://github.com" "theos" "sdks")
+        git clone --quiet --depth=1 $SDK_URL /home/runner/theos/sdks
 
     - name: Compile Tweak
       run: |

@@ -1,14 +1,25 @@
 #import <CoreLocation/CoreLocation.h>
 #import <objc/runtime.h>
+#import <Foundation/Foundation.h>
+
+// Định nghĩa giao diện lớp con của iOS để tránh lỗi biên dịch
+@interface CLLocationSourceInformation : NSObject
+@property (readonly, isSimulatedBySoftware: BOOL) BOOL isSimulatedBySoftware;
+@end
 
 %hook CLLocation
 
-// 1. Vượt qua kiểm tra độ chính xác (Bypass Accuracy Check)
-// Các app fake GPS đôi khi trả về độ chính xác bằng 0 hoặc -1 (không hợp lệ)
+// 1. Vượt qua thuộc tính cốt lõi của iOS 15+ (Quan trọng nhất)
+// iOS 15 bổ sung sourceInformation để chỉ đích danh vị trí có bị phần mềm giả lập hay không.
+- (id)sourceInformation {
+    return nil; // Trả về nil để báo hiệu vị trí hoàn toàn từ phần cứng thật
+}
+
+// 2. Vượt qua kiểm tra độ chính xác (Bypass Accuracy Check)
 - (CLLocationAccuracy)horizontalAccuracy {
     CLLocationAccuracy orig = %orig;
     if (orig <= 0) {
-        return 5.0; // Ép về mức sai số 5 mét (chuẩn GPS ngoài trời tốt)
+        return 5.0; // Ép về mức sai số 5 mét
     }
     return orig;
 }
@@ -16,43 +27,45 @@
 - (CLLocationAccuracy)verticalAccuracy {
     CLLocationAccuracy orig = %orig;
     if (orig <= 0) {
-        return 5.0;
+        return 5.0; //
     }
     return orig;
 }
 
-// 2. Tạo nhiễu độ cao giả lập (Altitude Simulation)
-// Nếu độ cao liên tục bằng 0.00000, hệ thống bảo mật sẽ gắn cờ nghi vấn
+// 3. Tạo nhiễu độ cao giả lập (Altitude Simulation)
 - (CLLocationDistance)altitude {
     CLLocationDistance orig = %orig;
     if (orig == 0.0) {
-        return 12.5; // Trả về một độ cao thực tế trung bình
+        return 21.3; // Thay đổi số thập phân để trông tự nhiên hơn
     }
     return orig;
 }
 
-// 3. Chuẩn hóa thời gian (Timestamp Validation)
-// Đảm bảo thời gian của gói tọa độ trùng khớp hoàn toàn với thời gian thực của hệ thống
+// 4. Chuẩn hóa thời gian (Timestamp Validation)
 - (NSDate *)timestamp {
-    return [NSDate date];
+    return [NSDate date]; // Trả về thời gian thực tại thời điểm gọi
 }
 
 %end
 
-// 4. Hook kiểm tra phương thức mô phỏng (Simulated Location Detection)
-// Chặn ứng dụng gọi các hàm kiểm tra xem vị trí có phải do Xcode hay công cụ giả lập tạo ra không
-%hook CLLocationManager
+// 5. Chống quét môi trường / Ẩn ứng dụng nhân bản hoặc công cụ bẻ khóa
+%hook NSFileManager
 
-+ (BOOL)deferredLocationUpdatesAvailable {
-    return YES;
-}
-
-+ (BOOL)locationServicesEnabled {
-    return YES;
-}
-// Ép tệp dylib tự động khởi chạy khi tiêm vào file IPA độc lập
-static __attribute__((constructor)) void initialize_gps_shield() {
-    NSLog(@"[TimeMarkShield] Hệ thống GPS Shield đã được kích hoạt thành công!");
+- (BOOL)fileExistsAtPath:(NSString *)path {
+    // Nếu Timemark quét các đường dẫn chứa dylib, ứng dụng fake, hoặc jailbreak, báo không tồn tại
+    if ([path containsString:@"Library/MobileSubstrate"] || 
+        [path containsString:@"Sideloadly"] || 
+        [path containsString:@"FakeGPS"] ||
+        [path containsString:@"frida"]) {
+        return NO;
+    }
+    return %orig;
 }
 
 %end
+
+// 6. Khởi tạo hệ thống ẩn danh
+%ctl() {
+    %init(_ungrouped);
+    NSLog(@"[TimeMarkShield] Đã kích hoạt hệ thống Bypass GPS nâng cao!");
+}

@@ -1,0 +1,41 @@
+name: Build Theos Tweak
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential ghostscript libiberty-dev libffi-dev libssl-dev pkg-config clang-14 lld-14
+
+    - name: Setup Theos Environment
+      run: |
+        bash -c "$(curl -fsSL https://githubusercontent.com)"
+        echo "THEOS=/home/runner/theos" >> $GITHUB_ENV
+
+    - name: Download iOS SDK
+      run: |
+        git clone --quiet --depth=1 https://github.com /home/runner/theos/sdks
+
+    - name: Compile Tweak
+      run: |
+        export THEOS=/home/runner/theos
+        make package FINALPACKAGE=1
+
+    - name: Upload Build Artifacts
+      uses: actions/artifacts@v4
+      with:
+        name: TimeMarkGPSTweak
+        path: .theos/obj/*.dylib

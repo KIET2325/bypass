@@ -35,7 +35,9 @@ jobs:
         make package FINALPACKAGE=1
 
     - name: Upload Build Artifacts
-      uses: actions/artifacts@v4
+      uses: actions/upload-artifact@v4
       with:
         name: TimeMarkGPSTweak
-        path: .theos/obj/*.dylib
+        path: |
+          .theos/obj/*.dylib
+          packages/*.deb

@@ -15,25 +15,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential ghostscript libiberty-dev libffi-dev libssl-dev pkg-config clang-14 lld-14
-
-    - name: Setup Theos Environment
-      run: |
-        THEOS_INSTALL_URL=$(printf "https://githubusercontent.com" "theos" "theos")
-        bash -c "$(curl -fsSL $THEOS_INSTALL_URL)"
-        echo "THEOS=/home/runner/theos" >> $GITHUB_ENV
-
-    - name: Download iOS SDK
-      run: |
-        SDK_URL=$(printf "https://github.com" "theos" "sdks")
-        git clone --quiet --depth=1 $SDK_URL /home/runner/theos/sdks
+    - name: Setup Theos and iOS SDK
+      uses: upm-packages/setup-theos@v1
 
     - name: Compile Tweak
       run: |
-        export THEOS=/home/runner/theos
         make package FINALPACKAGE=1
 
     - name: Upload Build Artifacts

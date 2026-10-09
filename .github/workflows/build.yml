@@ -22,14 +22,9 @@ jobs:
 
     - name: Setup Theos Environment
       run: |
-        # Giải mã tập lệnh cài đặt Theos tự động từ mã Base64 sạch để tránh lỗi đường dẫn
+        # Giải mã tập lệnh cài đặt Theos và SDK tự động từ mã Base64 sạch để tránh lỗi đường dẫn
         echo "YmFzaCAtYyAiJChjdXJsIC1mc1NMIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS90aGVvcy90aGVvcy9tYXN0ZXIvYmluL2luc3RhbGwtdGhlb3MpIg==" | base64 -d | bash
         echo "THEOS=/home/runner/theos" >> $GITHUB_ENV
-
-    - name: Download iOS SDK
-      run: |
-        # Giải mã lệnh clone bộ SDK iOS từ mã Base64
-        echo "Z2l0IGNsb25lIC0tcXVpZXQgLS1kZXB0aD0xIGh0dHBzOi8vZ2l0aHViLmNvbS90aGVvcy9zZGtzLmdpdCAvaG9tZS9ydW5uZXIvdGhlb3Mvc2Rrcw==" | base64 -d | bash
 
     - name: Compile Tweak
       run: |
